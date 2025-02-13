@@ -179,6 +179,12 @@
       font-size: 60px;
       font-weight: bold;
       transform: translate(-50%, -50%);
+      transition: transform 0.3s ease-out;
+
+      &.win {
+        color: #2db40a;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
     }
   }
 }

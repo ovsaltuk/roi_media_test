@@ -20,7 +20,9 @@ function App() {
   });
 
   const boardRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const planeControls = useAnimation();
+  const trajectoryImageRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (boardRef.current) {
@@ -56,6 +58,37 @@ function App() {
       setIntervalId(null);
     }
   }, [isBetting, planeControls, boardSize]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+  
+    const img = new Image();
+    img.src = "../public/trajectory.svg";
+    img.onload = () => {
+      const baseWidth = 10; // начальная ширина
+      const baseHeight = 10; // начальная высота
+  
+      const updateCanvas = () => {
+        if (!canvas || !ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+        const scaleX = planePosition.x / boardSize.width;
+        const scaleY = Math.abs(planePosition.y) / boardSize.height;
+  
+        const width = baseWidth + scaleX * (canvas.width - baseWidth);
+        const height = baseHeight + scaleY * (canvas.height - baseHeight);
+  
+        ctx.drawImage(img, 0, canvas.height - height, width, height);
+        requestAnimationFrame(updateCanvas);
+      };
+  
+      updateCanvas();
+    };
+  }, [planePosition, boardSize]);
+  
 
   const handleBet = () => {
     if (isBetting) {
@@ -130,19 +163,10 @@ function App() {
             />
 
             {!isGameOver && (
-              <motion.img
-                src="../public/trajectory.svg"
-                alt="rrr"
-                className="trajectory"
-                transition={{ duration: 0.1 }}
-                style={{
-                  width: planePosition.x + 15,
-                  height: Math.abs(planePosition.y - 12),
-                }}
-              />
+              <canvas ref={canvasRef} width={boardSize.width} height={boardSize.height}/>
             )}
 
-            {isBetting && <span className="mulriplicator">{multiplier}x</span>}
+            {(isBetting || isGameOver) && <span className={`mulriplicator ${isGameOver && "win"}`}>{multiplier}x</span>}
           </div>
           <div
             className="dots"
