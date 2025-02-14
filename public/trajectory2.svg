@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 841.9 595.3">
+  <!-- Generator: Adobe Illustrator 29.0.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 186)  -->
+  <defs>
+    <style>
+      .st0 {
+        stroke-width: 17.4px;
+      }
+
+      .st0, .st1 {
+        fill: none;
+        stroke: #e31e2f;
+        stroke-miterlimit: 10;
+      }
+
+      .st2 {
+        fill: #e21f26;
+        isolation: isolate;
+        opacity: .3;
+      }
+
+      .st1 {
+        stroke-width: 8.7px;
+      }
+    </style>
+  </defs>
+  <g id="_Слой_1">
+    <path class="st2" d="M-484,595C213.2,510.8,836.3,311,1202,0h0v595H-484Z"/>
+    <path class="st0" d="M-484,589.7h0C206.1,506,825,308.4,1186.3,0h0"/>
+    <line class="st1" x1="-391.5" y1="376.7" x2="-391.5" y2="376.7"/>
+  </g>
+</svg>

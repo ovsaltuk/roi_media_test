@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, useAnimation } from "framer-motion";
 import "./App.scss";
-import Canvas from "./components/canvas";
 
 const ratioList = [4.28, 1.19, 2.73, 4.15, 1.72, 6.15, 3.71];
 
@@ -10,42 +10,88 @@ function App() {
   const [multiplier, setMultiplier] = useState<number>(1);
   const [intervalId, setIntervalId] = useState<number | null>(null);
   const [showPopup, setShowPopup] = useState<boolean>(false);
-  const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
-
+  const [boardSize, setBoardSize] = useState<{ width: number; height: number }>(
+    { width: 0, height: 0 }
+  );
+  const [planePosition, setPlanePosition] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
 
   const boardRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const planeControls = useAnimation();
+  const trajectoryImageRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (boardRef.current) {
       const { offsetWidth, offsetHeight } = boardRef.current;
-      setCanvasSize({ width: offsetWidth, height: offsetHeight });
+      setBoardSize({ width: offsetWidth, height: offsetHeight });
     }
   }, []);
-  
+
   useEffect(() => {
     if (isBetting) {
-      console.log("app", isGameOver)
       let currentMultiplier = 1;
       const interval = setInterval(() => {
-        currentMultiplier += 0.4 * Math.pow(currentMultiplier, 0.5); // Ускорение роста
+        currentMultiplier += 0.4 * Math.pow(currentMultiplier, 0.7);
         setMultiplier(parseFloat(currentMultiplier.toFixed(2)));
         if (currentMultiplier >= 1000) {
           clearInterval(interval);
-          setIsBetting(false);
-          setIsGameOver(true);
+
+          handleBet();
         }
       }, 100);
       setIntervalId(interval);
+
+      planeControls.start({
+        x: boardSize.width / 2,
+        y: -boardSize.height / 2 - 50,
+        transition: {
+          x: { duration: 2, ease: "linear" },
+          y: { duration: 2, ease: "linear" },
+        },
+      });
     } else if (intervalId) {
       clearInterval(intervalId);
       setIntervalId(null);
     }
-  }, [isBetting]);
+  }, [isBetting, planeControls, boardSize]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+  
+    const img = new Image();
+    img.src = "../public/trajectory.svg";
+    img.onload = () => {
+      const baseWidth = 10; // начальная ширина
+      const baseHeight = 10; // начальная высота
+  
+      const updateCanvas = () => {
+        if (!canvas || !ctx) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+        const scaleX = planePosition.x / boardSize.width;
+        const scaleY = Math.abs(planePosition.y) / boardSize.height;
+  
+        const width = baseWidth + scaleX * (canvas.width - baseWidth);
+        const height = baseHeight + scaleY * (canvas.height - baseHeight);
+  
+        ctx.drawImage(img, 0, canvas.height - height, width, height);
+        requestAnimationFrame(updateCanvas);
+      };
+  
+      updateCanvas();
+    };
+  }, [planePosition, boardSize]);
+  
 
   const handleBet = () => {
     if (isBetting) {
-      // Остановка увеличения мультипликатора и обновление баланса
       setIsGameOver(true);
       if (intervalId) {
         clearInterval(intervalId);
@@ -53,12 +99,19 @@ function App() {
       }
       setIsBetting(false);
       setBalance((prevBalance) => Math.floor(prevBalance * multiplier));
+      planeControls.start({
+        x: boardSize.width + 100,
+        transition: { duration: 2 },
+      });
       setShowPopup(true);
     } else {
-      // Запуск увеличения мультипликатора
       setIsBetting(true);
       setMultiplier(1);
       setShowPopup(false);
+      planeControls.start({
+        x: boardSize.width + 100,
+        transition: { duration: 2 },
+      });
     }
   };
 
@@ -87,7 +140,7 @@ function App() {
 
       <div className="container">
         <div className="game">
-          {(!isBetting && !isGameOver) && (
+          {!isBetting && !isGameOver && (
             <div className="loader">
               <img
                 src="https://oklahomadrc.com/wp-content/uploads/2024/07/state-of-art-icon.svg"
@@ -97,16 +150,23 @@ function App() {
             </div>
           )}
           <div className="board" ref={boardRef}>
-            <img
-              src="../public/lines.svg"
-              alt="lines"
-              className="lines"
-              style={{ animationName: isBetting ? "spinLines" : "" }}
+            <img src="../public/lines.svg" alt="lines" className="lines" />
+            <motion.img
+              src="../public/plane.svg"
+              alt="plane"
+              className="plane"
+              animate={planeControls}
+              initial={{ x: 0, y: 0 }}
+              onUpdate={(latest) => {
+                setPlanePosition({ x: +latest.x, y: +latest.y });
+              }}
             />
-            {/* <img  src="../public/plane.svg" alt="plane" className="plane" style={{ animationName: isBetting ? "moveToCenter" : "" }} />
-            <img  src="../public/trajectory.svg" alt="trajectory" className="trajectory" /> */}
-            {isBetting && <span className="mulriplicator">{multiplier}x</span>}
-            <Canvas  width={canvasSize.width} height={canvasSize.height} isAnimating={isBetting} isGameOver={isGameOver}/>
+
+            {!isGameOver && (
+              <canvas ref={canvasRef} width={boardSize.width} height={boardSize.height}/>
+            )}
+
+            {(isBetting || isGameOver) && <span className={`mulriplicator ${isGameOver && "win"}`}>{multiplier}x</span>}
           </div>
           <div
             className="dots"
@@ -121,6 +181,7 @@ function App() {
         <button
           className={`button${isBetting ? " is-betting" : ""}`}
           onClick={handleBet}
+          disabled={isGameOver}
         >
           <span>{isBetting ? "CASH OUT" : "BET"}</span>
           <span>
@@ -141,10 +202,11 @@ function App() {
       <div className={`form ${showPopup ? "show" : ""}`}>
         <h3 className="title">You have won</h3>
         <img src="/public/bonus.png" alt="bonus" />
-        <p className="text">Register for TopX and get up to 30,000 and 175 freespins on your bonus balance</p>
-        <div className="registration">
-              Registration form
-        </div>
+        <p className="text">
+          Register for TopX and get up to 30,000 and 175 freespins on your bonus
+          balance
+        </p>
+        <div className="registration">Registration form</div>
       </div>
     </div>
   );
